@@ -31,6 +31,8 @@ class Community(object):
         return s
     
 def community_clustering_modularity():
+    import networkx as nx
+    import louvain
     path = settings.COMMUNITY_PATH
     verbose.debug(path)
     index = 0
@@ -53,6 +55,12 @@ def community_clustering_modularity():
             for id in comm_dict.keys():
                 communities.append(comm_dict[id])
     verbose.debug("num of communities: "+str(len(communities)))
+    g = nx.Graph()
+    for i in range(len(communities)):
+        for j in range(i+1,len(communities)):
+            affinity = communities[i].intersect(communities[j])
+            g.add_edge(i,j,affinity)
+    louvain.detect(g)
 
 def community_clustering():
     path = settings.COMMUNITY_PATH

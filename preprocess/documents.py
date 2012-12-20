@@ -11,6 +11,11 @@ SQL_GET_PUB_YEAR = "SELECT id, year FROM publication"
 mysql = Mysql()
 cur = mysql.cur
 
+def doc_to_bag_of_words():
+    from sklearn.feature_extraction.text import CountVectorizer
+    from sklearn.datasets import load_files
+    docs = load_files(settings.DOC_PATH)
+
 def get_author_pub():
     cur.execute(SQL_GET_AUTHOR_PUB)
     author_pub_file = open(settings.DATA_PATH+"\\authorPub.txt",'w')
