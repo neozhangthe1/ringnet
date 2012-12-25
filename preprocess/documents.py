@@ -4,18 +4,106 @@ Created on Dec 19, 2012
 @author: Yutao
 '''
 from metadata import settings
+from metadata import verbose
 from database.mysql import Mysql
+import codecs
+import os
+from bs4 import UnicodeDammit
+
+
 
 SQL_GET_AUTHOR_PUB = "SELECT * FROM na_author2pub"
 SQL_GET_PUB_YEAR = "SELECT id, year FROM publication"
+SQL_PUBLICATION_TITLE_ABSTRACTRS = "SELECT p.id, p.title, p.abstract FROM publicat_ext_ext1 p where p.year>=2000 and p.year<2010";
 mysql = Mysql()
 cur = mysql.cur
 
+
+def get_title_abstract():
+    cur.execute(SQL_PUBLICATION)
+
+def loaddata():
+    docids = []
+    docs = []
+    cur.execute(SQL_PUBLICATION_TITLE_ABSTRACTRS)
+    for row in cur.fetchall():
+        print row[0]
+        docids.append(row[0])
+        data = ""
+        if row[1]!=None:
+            data += row[1]
+        if row[2]!=None:
+            try:
+                data += row[2]
+            except Exception,e:
+                print e
+        docs.append(UnicodeDammit(data).markup)
+    return docids, docs
+        
+def doc_to_bag_of_words_db(docids,docs):
+    from sklearn.feature_extraction.text import CountVectorizer
+    voc = open(settings.TOPICMODEL_PATH+"\\alphabet.txt")
+    vocabulary = {}
+    line_count = 0
+    for line in voc:
+        vocabulary[line.strip()]=line_count
+        line_count+=1
+    vectorizer = CountVectorizer(vocabulary=vocabulary)
+    
+    counts = vectorizer.fit_transform(docs)
+    feature_names = vectorizer.get_feature_names()
+    out_counts = open(settings.DATA_PATH+"\\bag_of_words",'w')
+    out_sum_counts = open(settings.DATA_PATH+"\\sum_word_count",'w')
+    sum_counts = counts.sum(axis=0)
+    
+    nonzero_count = counts.nonzero()
+    id = nonzero_count[0][0]
+    out_counts.write(str(docids[id])+':')
+    out_counts.write(feature_names[nonzero_count[1][0]]+','+str(counts.getrow(id)[0,nonzero_count[1][0]])+'#')
+    for i in range(1,len(nonzero_count[0])):
+        if id!=nonzero_count[0][i]:
+            id = nonzero_count[0][i]
+            out_counts.write("\n")
+            out_counts.write(str(docids[id])+':')
+        out_counts.write(feature_names[nonzero_count[1][i]]+','+str(counts.getrow(id)[0,nonzero_count[1][i]])+'#')
+    
+    for i in range(sum_counts.shape[1]):
+        out_sum_counts.write(feature_names[i]+' '+str(sum_counts[0,i])+'\n')
+
 def doc_to_bag_of_words():
     from sklearn.feature_extraction.text import CountVectorizer
-    from sklearn.datasets import load_files
-    docs = load_files(settings.DOC_PATH)
-
+    voc = open(settings.TOPICMODEL_PATH+"\\alphabet.txt")
+    print settings.TOPICMODEL_PATH+"\\alphabet.txt"
+    vocabulary = {}
+    line_count = 0
+    for line in voc:
+        vocabulary[line.strip()]=line_count
+        line_count+=1
+    print line_count
+    vectorizer = CountVectorizer(min_df=1,vocabulary=vocabulary)
+    docids = []
+    docs = []
+    for root, dirs, files in os.walk(settings.DOC_PATH):
+        for file in files:
+            verbose.debug(file)
+            docids.append(int(file))
+            docs.append(UnicodeDammit(open(os.path.join(settings.DOC_PATH,file)).read()).markup)
+    counts = vectorizer.fit_transform(docs)
+    feature_names = vectorizer.get_feature_names()
+    out_counts = open(settings.DATA_PATH+"\\bag_of_words",'w')
+    out_sum_counts = open(settings.DATA_PATH+"\\sum_word_count",'w')
+    arr_counts = counts.toarray()
+    sum_counts = counts.sum(axis=0)
+    for i in range(len(docs)):
+        out_counts.write(docids[i]+':')
+        verbose.debug(docids[i])
+        for j in range(len(feature_names)):
+            if arr_counts[i,j]!=0:
+                verbose.debug(feature_names[j]+','+str(arr_counts[i,j]))
+                out_counts.write(feature_names[j]+','+str(arr_counts[i,j])+'.')
+    for i in range(len(arr_counts[0])):
+        out_sum_counts.write(feature_names[i]+' '+str(sum_counts[0,i])+'\n')
+    
 def get_author_pub():
     cur.execute(SQL_GET_AUTHOR_PUB)
     author_pub_file = open(settings.DATA_PATH+"\\authorPub.txt",'w')
@@ -122,7 +210,7 @@ def merge_docs(docs):
         
 
 def main():
-    gen_graph()
+    doc_to_bag_of_words_db()
 
 if __name__ == "__main__":
     main()

@@ -5,4 +5,8 @@ Created on Dec 19, 2012
 '''
 
 def debug(out):
-    print "[DEBUG]"+out
+    try:
+        print "[DEBUG]"+str(out)
+    except Exception,e:
+        print e
+        

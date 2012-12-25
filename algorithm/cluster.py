@@ -30,6 +30,9 @@ class Community(object):
             s+=str(m)+','
         return s
     
+def gen_weight_graph():
+    pass
+    
 def community_clustering_modularity():
     import networkx as nx
     import louvain
@@ -59,8 +62,9 @@ def community_clustering_modularity():
     for i in range(len(communities)):
         for j in range(i+1,len(communities)):
             affinity = communities[i].intersect(communities[j])
-            g.add_edge(i,j,affinity)
-    louvain.detect(g)
+            if affinity!=0:
+                g.add_edge(i,j,weight=affinity)
+    louvain.detect(g, settings.COMMUNITY_PATH+"\\modularity_clusters")
 
 def community_clustering():
     path = settings.COMMUNITY_PATH
