@@ -35,4 +35,12 @@ class Mysql(object):
             content = item[1]+'\n'
             pid = item[0]
             self.cur.execute(SQL_GET_ABSTRACT % pid)
-            for abs in self.cur.execute()
+            for abs in self.cur.fetchall():
+                content+=abs[0]
+                content+="\n"
+            self.cur.execute(SQL_GET_JCONF_NAME % item[2])
+            for jconf in self.cur.fetchall():
+                content+=jconf[0]
+                content+="\n"
+            papers[pid]=content            
+        return papers

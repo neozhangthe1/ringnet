@@ -18,6 +18,12 @@ SQL_PUBLICATION_TITLE_ABSTRACTRS = "SELECT p.id, p.title, p.abstract FROM public
 mysql = Mysql()
 cur = mysql.cur
 
+def get_paper_content():
+    papers = mysql.get_paper_content()
+    for paper in papers:
+        doc = open("D:\\share\\yutao\\Workspace\\data\\"+paper,"w")
+        doc.write(papers[paper])
+        doc.close()
 
 def get_title_abstract():
     cur.execute(SQL_PUBLICATION)
